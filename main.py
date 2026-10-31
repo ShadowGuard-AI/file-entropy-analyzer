@@ -2,6 +2,7 @@ import argparse
 import logging
 import math
 import os
+import sys
 from pathlib import Path
 
 # Configure logging
@@ -29,8 +30,8 @@ def calculate_entropy(file_path):
         return None
 
     if not data:
-        logging.warning("File is empty. Entropy is 0.")
-        return 0.0
+        logging.error("File is empty: no data to analyze.")
+        return None
 
     entropy = 0
     data_len = len(data)
@@ -73,14 +74,17 @@ def main():
     # Input Validation: check if the file exists
     if not file_path.exists():
         logging.error(f"File does not exist: {file_path}")
-        return
+        sys.exit(1)
 
     # Input Validation: Check if file is a file and not a directory or symlink, etc.
     if not file_path.is_file():
       logging.error(f"Not a regular file: {file_path}")
-      return
+      sys.exit(1)
 
     entropy = calculate_entropy(file_path)
+
+    if entropy is None:
+        sys.exit(1)
 
     if entropy is not None:
         print(f"Entropy of {file_path}: {entropy:.4f}")
