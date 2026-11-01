@@ -21,6 +21,9 @@ def calculate_entropy(file_path):
     """
     try:
         with open(file_path, "rb") as f:
+            # The file is read whole. Entropy needs every byte counted anyway,
+            # but a chunked count would give the same number without holding a
+            # very large file in memory at once.
             data = f.read()
     except FileNotFoundError:
         logging.error(f"File not found: {file_path}")
@@ -45,6 +48,11 @@ def calculate_entropy(file_path):
 
       for count in byte_counts.values():
           probability = float(count) / data_len
+          # This is one Shannon entropy figure for the whole file, byte values
+          # only. Position and structure play no part, so a small encrypted or
+          # compressed region inside a large plain file is diluted by everything
+          # around it and the total can still read as low. There is no per block
+          # breakdown to catch that case.
           entropy -= probability * math.log(probability, 2)
 
     return entropy
@@ -77,6 +85,9 @@ def main():
         sys.exit(1)
 
     # Input Validation: Check if file is a file and not a directory or symlink, etc.
+    # is_file follows symlinks, so a link to a regular file passes this
+    # check, whatever the wording above it suggests. The target is what
+    # gets measured, under the link's name in the printed line.
     if not file_path.is_file():
       logging.error(f"Not a regular file: {file_path}")
       sys.exit(1)
@@ -90,6 +101,9 @@ def main():
         print(f"Entropy of {file_path}: {entropy:.4f}")
 
         # Interpretation of Entropy
+        # The three bands are rules of thumb printed as interpretation, not
+        # verdicts. Compressed data that is mostly padding can land in the
+        # medium band, and dense executable code can cross into high.
         if entropy > 7.5:
             print("High entropy: The file may be compressed or encrypted.")
         elif entropy > 6.0:
